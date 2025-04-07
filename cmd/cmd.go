@@ -247,6 +247,21 @@ func loadOrUnloadModel(cmd *cobra.Command, opts *runOptions) error {
 	return client.Generate(cmd.Context(), req, func(api.GenerateResponse) error { return nil })
 }
 
+func StopModel(cmd *cobra.Command, args []string) error {
+	opts := &runOptions{
+		Model:     args[0],
+		KeepAlive: &api.Duration{Duration: 0},
+	}
+
+	if err := loadOrUnloadModel(cmd, opts); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return fmt.Errorf("couldn't find model \"%s\" to stop", args[0])
+		}
+		return err
+	}
+	return nil
+}
+
 func StopHandler(cmd *cobra.Command, args []string) error {
 	opts := &runOptions{
 		Model:     args[0],
@@ -266,18 +281,12 @@ func StopHandler(cmd *cobra.Command, args []string) error {
 
 		for _, model := range models.Models {
 			opts.Model = model.Name
-			if err := loadOrUnloadModel(cmd, opts); err != nil {
-				if strings.Contains(err.Error(), "not found") {
-					return fmt.Errorf("couldn't find model \"%s\" to stop", args[0])
-				}
+			if err := StopModel(cmd, []string{model.Name}); err != nil {
 				return err
 			}
 		}
 	} else {
-		if err := loadOrUnloadModel(cmd, opts); err != nil {
-			if strings.Contains(err.Error(), "not found") {
-				return fmt.Errorf("couldn't find model \"%s\" to stop", args[0])
-			}
+		if err := StopModel(cmd, args); err != nil {
 			return err
 		}
 	}
